@@ -1,32 +1,21 @@
 
+import os
 from contextlib import asynccontextmanager
 
-from fastapi.middleware.cors import CORSMiddleware
+from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 
-from database import engine, Base, test_database_connection
-import models
-
+from database import test_database_connection
 from routers import auth, jobs
 
-from reminder_scheduler import start_scheduler, stop_scheduler
+load_dotenv()
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Initialize database tables
-    Base.metadata.create_all(bind=engine)
-
-    # Start daily email reminder scheduler
-    start_scheduler()
-
     print("DevTrack API started successfully.")
-
     yield
-
-    # Stop scheduler during application shutdown
-    stop_scheduler()
-
     print("DevTrack API stopped.")
 
 
@@ -38,18 +27,25 @@ app = FastAPI(
 )
 
 
-# API Routers
 app.include_router(auth.router)
 app.include_router(jobs.router)
 
 
 # CORS Configuration
+frontend_urls = os.getenv(
+    "FRONTEND_URL",
+    "http://localhost:5173,http://localhost:5174"
+)
+
+allowed_origins = [
+    url.strip()
+    for url in frontend_urls.split(",")
+    if url.strip()
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[
-        "http://localhost:5173",
-        "http://localhost:5174"
-    ],
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

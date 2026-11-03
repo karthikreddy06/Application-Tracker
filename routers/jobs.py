@@ -2,10 +2,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from datetime import date, timedelta
+import json
+
 from database import get_db
 from models import Job, User
 from schemas.job import JobCreate, JobUpdate, JobResponse
 from security import get_current_user
+
+from redis.exceptions import RedisError
+from redis_client import redis_client, invalidate_dashboard_cache
 
 
 router = APIRouter(
@@ -37,12 +42,20 @@ def create_job(
         db.add(new_job)
         db.commit()
         db.refresh(new_job)
-    except Exception:
+
+    except Exception as e:
         db.rollback()
+        print("CREATE JOB ERROR:", e)
+
         raise HTTPException(
             status_code=500,
             detail="Unable to create job application"
         )
+
+    # Invalidate cache after successful database commit
+    invalidate_dashboard_cache(current_user.id)
+
+    print("JOB CREATED SUCCESSFULLY")
 
     return new_job
 
@@ -83,6 +96,7 @@ def get_jobs(
 
     if search:
         term = f"%{search.strip()}%"
+
         query = query.filter(
             Job.company_name.ilike(term) |
             Job.job_title.ilike(term)
@@ -107,7 +121,7 @@ def get_jobs(
 
 
 # ==========================================
-# DASHBOARD STATISTICS
+# DASHBOARD STATISTICS WITH REDIS CACHE
 # ==========================================
 
 @router.get("/stats")
@@ -115,6 +129,26 @@ def get_job_stats(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user)
 ):
+    print("STATS ENDPOINT CALLED")
+
+    cache_key = f"dashboard:stats:user:{current_user.id}"
+
+    # 1. Check Redis cache
+    try:
+        cached_stats = redis_client.get(cache_key)
+
+        if cached_stats:
+            print("REDIS CACHE HIT")
+            return json.loads(cached_stats)
+
+        print("REDIS CACHE MISS")
+
+    except RedisError as e:
+        print("REDIS READ ERROR:", e)
+
+    # 2. Fetch statistics from PostgreSQL
+    print("FETCHING STATS FROM POSTGRESQL")
+
     user_jobs = db.query(Job).filter(
         Job.user_id == current_user.id
     )
@@ -146,7 +180,7 @@ def get_job_stats(
         if total > 0 else 0
     )
 
-    return {
+    stats = {
         "total_applications": total,
         "applied": applied,
         "assessments": assessment,
@@ -155,6 +189,22 @@ def get_job_stats(
         "rejected": rejected,
         "success_rate": success_rate
     }
+
+    # 3. Save statistics in Redis for 60 seconds
+    try:
+        redis_client.setex(
+            cache_key,
+            60,
+            json.dumps(stats)
+        )
+
+        print("STATS SAVED TO REDIS")
+
+    except RedisError as e:
+        print("REDIS WRITE ERROR:", e)
+
+    return stats
+
 
 # ==========================================
 # JOB FOLLOW-UP REMINDERS
@@ -168,7 +218,11 @@ def get_job_reminders(
     today = date.today()
     next_week = today + timedelta(days=7)
 
-    active_statuses = ["Applied", "Assessment", "Interview"]
+    active_statuses = [
+        "Applied",
+        "Assessment",
+        "Interview"
+    ]
 
     base_query = db.query(Job).filter(
         Job.user_id == current_user.id,
@@ -194,12 +248,16 @@ def get_job_reminders(
         "due_today_count": len(due_today),
         "upcoming_count": len(upcoming),
         "total_reminders": (
-            len(overdue) + len(due_today) + len(upcoming)
+            len(overdue) +
+            len(due_today) +
+            len(upcoming)
         ),
         "overdue": overdue,
         "due_today": due_today,
         "upcoming": upcoming
     }
+
+
 # ==========================================
 # GET ONE JOB APPLICATION
 # ==========================================
@@ -254,12 +312,19 @@ def update_job(
     try:
         db.commit()
         db.refresh(job)
-    except Exception:
+
+    except Exception as e:
         db.rollback()
+        print("UPDATE JOB ERROR:", e)
+
         raise HTTPException(
             status_code=500,
             detail="Unable to update job application"
         )
+
+    invalidate_dashboard_cache(current_user.id)
+
+    print("JOB UPDATED SUCCESSFULLY")
 
     return job
 
@@ -288,12 +353,19 @@ def delete_job(
     try:
         db.delete(job)
         db.commit()
-    except Exception:
+
+    except Exception as e:
         db.rollback()
+        print("DELETE JOB ERROR:", e)
+
         raise HTTPException(
             status_code=500,
             detail="Unable to delete job application"
         )
+
+    invalidate_dashboard_cache(current_user.id)
+
+    print("JOB DELETED SUCCESSFULLY")
 
     return {
         "message": "Job application deleted successfully"

@@ -74,7 +74,6 @@ export default function Applications() {
             setJobs(response.data.jobs);
             setTotal(response.data.total);
             setHasMore(response.data.has_more);
-
         } catch (err) {
             console.error("Fetch jobs error:", err);
 
@@ -92,6 +91,19 @@ export default function Applications() {
     }, [search, status, skip]);
 
     // ==========================================
+    // FORM HANDLER
+    // ==========================================
+
+    const handleFormChange = (e) => {
+        const { name, value } = e.target;
+
+        setForm((previous) => ({
+            ...previous,
+            [name]: value,
+        }));
+    };
+
+    // ==========================================
     // OPEN ADD MODAL
     // ==========================================
 
@@ -99,6 +111,7 @@ export default function Applications() {
         setEditingJobId(null);
         setForm(initialForm);
         setError("");
+        setSuccess("");
         setShowModal(true);
     };
 
@@ -143,6 +156,7 @@ export default function Applications() {
             };
 
             if (editingJobId !== null) {
+                // UPDATE EXISTING APPLICATION
                 await api.put(
                     `/jobs/${editingJobId}`,
                     payload
@@ -150,6 +164,7 @@ export default function Applications() {
 
                 setSuccess("Application updated successfully!");
             } else {
+                // CREATE NEW APPLICATION
                 await api.post("/jobs/", payload);
 
                 setSuccess("Application added successfully!");
@@ -159,10 +174,12 @@ export default function Applications() {
             setEditingJobId(null);
             setShowModal(false);
 
+            // Reset filters and pagination
             setSearch("");
             setStatus("");
             setSkip(0);
 
+            // Fetch updated applications
             await fetchJobs({
                 search: "",
                 status: "",
@@ -226,6 +243,17 @@ export default function Applications() {
     };
 
     // ==========================================
+    // CLOSE MODAL
+    // ==========================================
+
+    const closeModal = () => {
+        setShowModal(false);
+        setEditingJobId(null);
+        setForm(initialForm);
+        setError("");
+    };
+
+    // ==========================================
     // STATUS BADGE STYLING
     // ==========================================
 
@@ -251,7 +279,6 @@ export default function Applications() {
             {/* HEADER */}
 
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
-
                 <div>
                     <p className="text-sm text-slate-500">
                         Workspace / Applications
@@ -267,7 +294,6 @@ export default function Applications() {
                 </div>
 
                 <div className="flex gap-3">
-
                     <button
                         onClick={() => fetchJobs()}
                         disabled={loading}
@@ -284,7 +310,6 @@ export default function Applications() {
                         <Plus size={19} />
                         Add Application
                     </button>
-
                 </div>
             </div>
 
@@ -292,13 +317,11 @@ export default function Applications() {
 
             {success && (
                 <div className="bg-emerald-50 text-emerald-700 p-4 rounded-xl mb-5 flex justify-between items-center">
-
                     <span>{success}</span>
 
                     <button onClick={() => setSuccess("")}>
                         <X size={18} />
                     </button>
-
                 </div>
             )}
 
@@ -306,24 +329,20 @@ export default function Applications() {
 
             {error && !showModal && (
                 <div className="bg-red-50 text-red-700 p-4 rounded-xl mb-5 flex justify-between items-center">
-
                     <span>{error}</span>
 
                     <button onClick={() => setError("")}>
                         <X size={18} />
                     </button>
-
                 </div>
             )}
 
             {/* SEARCH AND FILTER */}
 
             <div className="bg-white border border-slate-200 rounded-2xl p-4 mb-6">
-
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
 
                     <div className="relative">
-
                         <Search
                             size={19}
                             className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400"
@@ -339,7 +358,6 @@ export default function Applications() {
                             placeholder="Search company or job title..."
                             className="w-full border border-slate-200 rounded-xl pl-10 pr-4 py-3 outline-none focus:ring-2 focus:ring-blue-500"
                         />
-
                     </div>
 
                     <select
@@ -366,7 +384,6 @@ export default function Applications() {
             <div className="bg-white border border-slate-200 rounded-2xl overflow-hidden">
 
                 <div className="p-5 border-b border-slate-200 flex items-center justify-between">
-
                     <h2 className="font-semibold text-lg">
                         All Applications
                     </h2>
@@ -374,7 +391,6 @@ export default function Applications() {
                     <span className="text-sm text-slate-500">
                         {total} applications
                     </span>
-
                 </div>
 
                 {loading ? (
@@ -382,9 +398,7 @@ export default function Applications() {
                         Loading applications...
                     </div>
                 ) : jobs.length === 0 ? (
-
                     <div className="p-12 text-center">
-
                         <BriefcaseBusiness
                             size={40}
                             className="mx-auto text-slate-300 mb-4"
@@ -397,19 +411,13 @@ export default function Applications() {
                         <p className="text-sm text-slate-500 mt-2">
                             Try changing your search or add a new application.
                         </p>
-
                     </div>
-
                 ) : (
-
                     <div className="overflow-x-auto">
-
                         <table className="w-full text-left">
 
                             <thead className="bg-slate-50 text-slate-500 text-sm">
-
                                 <tr>
-
                                     <th className="px-5 py-4 font-medium">
                                         Company
                                     </th>
@@ -437,20 +445,15 @@ export default function Applications() {
                                     <th className="px-5 py-4 font-medium">
                                         Actions
                                     </th>
-
                                 </tr>
-
                             </thead>
 
                             <tbody className="divide-y divide-slate-100">
-
                                 {jobs.map((job) => (
-
                                     <tr
                                         key={job.id}
                                         className="hover:bg-slate-50"
                                     >
-
                                         <td className="px-5 py-4 font-semibold text-slate-800">
                                             {job.company_name}
                                         </td>
@@ -460,12 +463,10 @@ export default function Applications() {
                                         </td>
 
                                         <td className="px-5 py-4 text-slate-500">
-
                                             <span className="flex items-center gap-1">
                                                 <MapPin size={15} />
                                                 {job.location || "Not specified"}
                                             </span>
-
                                         </td>
 
                                         <td className="px-5 py-4 text-slate-600">
@@ -473,17 +474,14 @@ export default function Applications() {
                                         </td>
 
                                         <td className="px-5 py-4">
-
                                             <span
                                                 className={`px-3 py-1 rounded-full text-xs font-semibold ${getStatusStyle(job.status)}`}
                                             >
                                                 {job.status}
                                             </span>
-
                                         </td>
 
                                         <td className="px-5 py-4 text-slate-600 whitespace-nowrap">
-
                                             <span className="flex items-center gap-2">
                                                 <CalendarDays
                                                     size={15}
@@ -492,11 +490,9 @@ export default function Applications() {
 
                                                 {job.follow_up_date || "Not scheduled"}
                                             </span>
-
                                         </td>
 
                                         <td className="px-5 py-4">
-
                                             <div className="flex items-center gap-2">
 
                                                 <button
@@ -517,31 +513,24 @@ export default function Applications() {
                                                 </button>
 
                                             </div>
-
                                         </td>
-
                                     </tr>
-
                                 ))}
-
                             </tbody>
 
                         </table>
-
                     </div>
-
                 )}
 
                 {/* PAGINATION */}
 
                 <div className="p-5 border-t border-slate-200 flex items-center justify-between">
-
                     <p className="text-sm text-slate-500">
-                        Showing {total === 0 ? 0 : skip + 1}–{Math.min(skip + jobs.length, total)} of {total}
+                        Showing {total === 0 ? 0 : skip + 1}–
+                        {Math.min(skip + jobs.length, total)} of {total}
                     </p>
 
                     <div className="flex gap-2">
-
                         <button
                             disabled={skip === 0 || loading}
                             onClick={() => setSkip(Math.max(0, skip - limit))}
@@ -557,9 +546,7 @@ export default function Applications() {
                         >
                             <ChevronRight size={20} />
                         </button>
-
                     </div>
-
                 </div>
 
             </div>
@@ -567,7 +554,6 @@ export default function Applications() {
             {/* ADD / EDIT MODAL */}
 
             {showModal && (
-
                 <div className="fixed inset-0 z-50 bg-slate-950/50 flex items-center justify-center p-4">
 
                     <div className="bg-white w-full max-w-xl rounded-2xl shadow-xl max-h-[90vh] overflow-y-auto">
@@ -575,9 +561,7 @@ export default function Applications() {
                         {/* MODAL HEADER */}
 
                         <div className="flex items-center justify-between p-6 border-b">
-
                             <div>
-
                                 <h2 className="text-xl font-bold text-slate-900">
                                     {editingJobId !== null
                                         ? "Edit Job Application"
@@ -587,21 +571,14 @@ export default function Applications() {
                                 <p className="text-sm text-slate-500 mt-1">
                                     Enter the job details below.
                                 </p>
-
                             </div>
 
                             <button
-                                onClick={() => {
-                                    setShowModal(false);
-                                    setEditingJobId(null);
-                                    setForm(initialForm);
-                                    setError("");
-                                }}
+                                onClick={closeModal}
                                 className="p-2 hover:bg-slate-100 rounded-lg"
                             >
                                 <X size={21} />
                             </button>
-
                         </div>
 
                         {/* MODAL FORM */}
@@ -614,47 +591,35 @@ export default function Applications() {
                             {/* COMPANY */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Company name *
                                 </label>
 
                                 <input
                                     required
+                                    name="company_name"
                                     value={form.company_name}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            company_name: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     placeholder="e.g. Google"
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-
                             </div>
 
                             {/* JOB TITLE */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Job title *
                                 </label>
 
                                 <input
                                     required
+                                    name="job_title"
                                     value={form.job_title}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            job_title: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     placeholder="e.g. Backend Developer"
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-
                             </div>
 
                             {/* LOCATION AND JOB TYPE */}
@@ -662,39 +627,28 @@ export default function Applications() {
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
 
                                 <div>
-
                                     <label className="block text-sm font-medium mb-2">
                                         Location
                                     </label>
 
                                     <input
+                                        name="location"
                                         value={form.location}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                location: e.target.value,
-                                            })
-                                        }
+                                        onChange={handleFormChange}
                                         placeholder="Bengaluru"
                                         className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                     />
-
                                 </div>
 
                                 <div>
-
                                     <label className="block text-sm font-medium mb-2">
                                         Job type
                                     </label>
 
                                     <select
+                                        name="job_type"
                                         value={form.job_type}
-                                        onChange={(e) =>
-                                            setForm({
-                                                ...form,
-                                                job_type: e.target.value,
-                                            })
-                                        }
+                                        onChange={handleFormChange}
                                         className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                     >
                                         <option>Full-time</option>
@@ -703,7 +657,6 @@ export default function Applications() {
                                         <option>Contract</option>
                                         <option>Remote</option>
                                     </select>
-
                                 </div>
 
                             </div>
@@ -711,19 +664,14 @@ export default function Applications() {
                             {/* APPLICATION STATUS */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Application status
                                 </label>
 
                                 <select
+                                    name="status"
                                     value={form.status}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            status: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 >
                                     <option>Applied</option>
@@ -732,79 +680,60 @@ export default function Applications() {
                                     <option>Offer</option>
                                     <option>Rejected</option>
                                 </select>
-
                             </div>
 
                             {/* FOLLOW-UP DATE */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Follow-up Date
                                 </label>
 
                                 <input
                                     type="date"
+                                    name="follow_up_date"
                                     value={form.follow_up_date}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            follow_up_date: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 />
 
                                 <p className="text-xs text-slate-500 mt-1">
                                     Schedule a date to follow up with the company.
                                 </p>
-
                             </div>
 
                             {/* JOB URL */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Job URL
                                 </label>
 
                                 <input
                                     type="url"
+                                    name="job_url"
                                     value={form.job_url}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            job_url: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     placeholder="https://company.com/careers"
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-
                             </div>
 
                             {/* NOTES */}
 
                             <div>
-
                                 <label className="block text-sm font-medium mb-2">
                                     Notes
                                 </label>
 
                                 <textarea
+                                    name="notes"
                                     rows="3"
                                     value={form.notes}
-                                    onChange={(e) =>
-                                        setForm({
-                                            ...form,
-                                            notes: e.target.value,
-                                        })
-                                    }
+                                    onChange={handleFormChange}
                                     placeholder="Add any additional notes..."
                                     className="w-full border border-slate-200 rounded-xl p-3 outline-none focus:ring-2 focus:ring-blue-500"
                                 />
-
                             </div>
 
                             {/* ERROR */}
@@ -818,15 +747,9 @@ export default function Applications() {
                             {/* FORM BUTTONS */}
 
                             <div className="flex justify-end gap-3 pt-3">
-
                                 <button
                                     type="button"
-                                    onClick={() => {
-                                        setShowModal(false);
-                                        setEditingJobId(null);
-                                        setForm(initialForm);
-                                        setError("");
-                                    }}
+                                    onClick={closeModal}
                                     className="px-5 py-3 border rounded-xl hover:bg-slate-50"
                                 >
                                     Cancel
@@ -843,15 +766,12 @@ export default function Applications() {
                                             ? "Update Application"
                                             : "Save Application"}
                                 </button>
-
                             </div>
 
                         </form>
 
                     </div>
-
                 </div>
-
             )}
 
         </main>
